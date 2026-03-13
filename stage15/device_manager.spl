@@ -1,0 +1,29 @@
+alias functionNum R1;
+alias currentPID R2;
+alias word R3;
+
+if (functionNum != 3) then
+    return;
+endif;
+
+
+
+//calling acquire terminal
+multipush(R1, R2, R3);
+functionNum = 8;
+//R2 already stores pid 
+call RESOURCE_MANAGER;
+multipop(R1, R2, R3);
+
+//printing
+print word;
+
+//calling release terminal
+multipush(R1, R2, R3);
+functionNum = 9;
+//R2 already stores pid 
+call RESOURCE_MANAGER;
+multipop(R1, R2, R3);
+
+
+return;

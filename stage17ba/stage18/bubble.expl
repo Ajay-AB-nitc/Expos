@@ -1,0 +1,48 @@
+decl
+    int arr[100], bubblesort();
+    int n, iter;
+enddecl
+
+int bubblesort(){
+    decl
+        int i, j, temp;
+    enddecl
+    begin
+        i = n - 1;
+        while (i >= 1)do
+            j = 0;
+            while (j < i)do
+                if (arr[j] > arr[j+1]) then
+                    temp = arr[j];
+                    arr[j] = arr[j+1];
+                    arr[j+1] = temp;
+                endif;
+                j = j + 1; 
+            endwhile;
+            i = i - 1;
+        endwhile;
+        return 0;
+    end
+}
+
+int main(){ 
+
+    begin
+        read(n);
+        iter = 0;
+        while (iter < n) do
+            read(arr[iter]);
+            iter = iter + 1;
+        endwhile;
+        
+        iter = bubblesort();
+        write("soreted array:");
+        iter = 0;
+        while (iter < n) do
+            write(arr[iter]);
+            iter = iter + 1;
+        endwhile;
+
+        return 0;
+    end
+}

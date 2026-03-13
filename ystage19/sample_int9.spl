@@ -1,0 +1,149 @@
+//saveing user stack
+alias userSP R0;
+alias debug R13;
+
+userSP = SP;
+[ PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13] = SP;
+
+//set sp to user area page
+SP = [ PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512 - 1;
+
+//setting mod flag
+[ PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 9;
+
+//getting argumnets
+alias filename R2;
+filename = [([PTBR + 2 * ((userSP - 4) / 512)] * 512) + ((userSP - 4) % 512)];
+ 
+//search mem cpy of indoe table for file
+//there are 60 entries 16 words each and first word is type second is name
+alias iter R3;
+alias fileno R4;
+iter = 0;
+fileno = -1;
+while (iter < MAX_FILE_NUM) do
+    // if filename matches and the type is xexe(3)
+    if ([INODE_TABLE + iter * 16 + 1] == filename && [INODE_TABLE + iter * 16] == EXEC) then
+        fileno = iter;
+        break;
+    endif;
+    iter = iter + 1;
+endwhile;
+
+//defining return value and handling no file found case
+
+alias retAddr R5;
+retAddr = ([PTBR + 2 * ((userSP - 1) / 512)] * 512) + ((userSP - 1) % 512);
+
+if (fileno == -1)then
+    [retAddr] = -1;
+    [ PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+    SP = [ PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13];
+    ireturn;
+endif;
+
+multipush(R0, R1, R2, R3, R4, R5);
+alias fno R1;
+alias arg1 R2;
+
+fno = EXIT_PROCESS;
+arg1 = [SYSTEM_STATUS_TABLE + 1];
+call PROCESS_MANAGER;
+multipop(R0, R1, R2, R3, R4, R5);
+
+// reclaiming the user area page deallocated by exit process and updating the mem free count
+[MEMORY_FREE_LIST + [  PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11]] =  [MEMORY_FREE_LIST + [  PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11]] + 1;
+[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+
+SP = [ PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512 - 1;
+
+//set state to running and update the inode index
+[ PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = RUNNING;
+[ PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 7] = fileno;
+
+//setting resource table
+iter = 0;
+while (iter < 16) do
+    [[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512 + RESOURCE_TABLE_OFFSET + iter] = -1;  
+    iter = iter + 1;
+endwhile;
+
+// allocated library 
+[PTBR] = 63;
+[PTBR+1] = "0100";
+[PTBR+2] = 64;
+[PTBR+3] = "0100";
+
+// invalidating heap
+[PTBR + 4] = -1;
+[PTBR + 5] = "0000";
+[PTBR + 6] = -1;
+[PTBR + 7] = "0000";
+
+//invalidating last three code pages
+[PTBR + 10] = -1;
+[PTBR + 11] = "0000";
+[PTBR + 12] = -1;
+[PTBR + 13] = "0000";
+[PTBR + 14] = -1;
+[PTBR + 15] = "0000";
+
+//allocating stack
+multipush(R0, R1, R2, R3, R4, R5);
+// alias fno R1;
+alias newpage R0;
+fno = GET_FREE_PAGE;
+print("stk alloc");
+print(newpage);
+call MEMORY_MANAGER;
+[PTBR + 16] = newpage;
+[PTBR + 17] = "0110";
+
+print("stk alloc");
+print(newpage);
+call MEMORY_MANAGER;
+[PTBR + 18] = newpage;
+[PTBR + 19] = "0110";
+breakpoint;
+
+multipop(R0, R1, R2, R3, R4, R5);
+
+//allocating the first code page
+multipush(R0, R1, R2, R3, R4, R5);
+// alias newpage R0;
+// alias fno R1;
+// alias arg1 R2;
+fno = GET_CODE_PAGE;
+arg1 = [INODE_TABLE + fileno * 16 + 8];
+call MEMORY_MANAGER;
+
+[PTBR + 8] = newpage;
+[PTBR + 9] = "0100";
+multipop(R0, R1, R2, R3, R4, R5);
+
+// setting the disk map table
+// initializing all to -1
+alias q R0;
+q = 0;
+while (q < 10) do
+    if (q >= 4 && q <= 7) then
+        //if its a code block copy it from the inode table
+        [DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE+1] * 10 + q] = [INODE_TABLE + fileno * 16 + q + 4];
+    else
+        [DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE+1] * 10 + q] = -1;
+    endif;
+    q = q + 1;
+endwhile;
+// setting 4th entry as the block no of first 
+
+// store the next ip at top of user stack
+[[PTBR + 8 * 2] * 512] = [[PTBR + 4 * 2] * 512 + 1];
+
+// setting sp for user mode 
+SP = 8 * 512;
+
+[ PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+ireturn;
+
+

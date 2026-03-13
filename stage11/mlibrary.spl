@@ -1,0 +1,5 @@
+alias check R0;
+if ([SP - 4] == "Write") then
+	[SP-4] = 5;
+	int 7;
+endif;

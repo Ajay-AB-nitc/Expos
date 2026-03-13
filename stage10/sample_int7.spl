@@ -1,0 +1,54 @@
+// set mod flag
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 5;
+
+//saving usersp
+alias userSP R0;
+userSP = SP;
+
+// saving usersp in process table
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13] = SP;
+
+//settign sp to kptr
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512 - 1;
+
+alias physicalPageNum R1;
+alias offset R2;
+alias fileDescPhysicalAddr R3;
+
+// finding the physical page number of argument1
+physicalPageNum = [PTBR + 2 * ((userSP - 4) / 512)];
+
+// finding offset of argument 1 (file descriptor)
+offset = (userSP - 4) % 512;
+
+// finding physical address of fd
+fileDescPhysicalAddr = physicalPageNum * 512 + offset;
+
+alias fileDescriptor R4;
+fileDescriptor = [fileDescPhysicalAddr];
+
+// check if the fd is valid since we are only accepting terminal for now
+
+if (fileDescriptor != -2)
+then 
+	alias physicalAddrRetVal R5;
+	physicalAddrRetVal = ([PTBR + 2 * ((userSP-1) / 512)] * 512) + ((userSP - 1) % 512);
+	[physicalAddrRetVal] = -1;
+else
+	alias word R5;
+	word = [[PTBR + 2 * (userSP - 3) / 512] * 512 + (userSP - 3) % 512];
+
+	print word;
+
+	alias physicalAddrRetVal R6;
+	physicalAddrRetVal = ([PTBR + 2 * ((userSP-1) / 512)] * 512) + ((userSP - 1) % 512);
+	[physicalAddrRetVal] = 0;
+endif;
+
+//reseting SP
+SP = userSP;
+
+//reseting mode flag
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+
+ireturn;

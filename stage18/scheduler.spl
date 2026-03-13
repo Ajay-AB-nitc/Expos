@@ -1,0 +1,59 @@
+// obtain currentPID from SYSTEM_STATUS_TABLE
+alias currentPID R0;
+currentPID = [SYSTEM_STATUS_TABLE + 1];
+
+multipush(BP);
+
+
+
+
+//setting the process table
+alias process_table_entry R1;
+process_table_entry = PROCESS_TABLE + currentPID * 16;
+[process_table_entry + 12] = SP % 512;
+[process_table_entry + 14] = PTBR;
+[process_table_entry + 15] = PTLR;
+
+
+alias nextPID R2;
+alias iter R3;
+
+
+nextPID = 0;
+iter = (currentPID + 1) % 16;
+
+while (iter != currentPID) do
+    if (iter == 0) then
+        iter = iter + 1;
+        continue;
+    endif;
+
+    if (([PROCESS_TABLE + iter * 16 + 4] == CREATED) || ([PROCESS_TABLE + iter * 16 + 4] == READY)) then
+        nextPID = iter;
+        break;
+    endif;
+
+    iter = (iter + 1) % 16;
+endwhile;
+
+// set sp to kptr of nextPID
+SP = [PROCESS_TABLE + nextPID * 16 + 11] * 512 + [PROCESS_TABLE + nextPID * 16 + 12];
+
+// retrive ptbr and PTLR
+PTBR = [PROCESS_TABLE + nextPID * 16 + 14]; 
+PTLR = [PROCESS_TABLE + nextPID * 16 + 15];
+
+//set the nextPID syste status table
+[SYSTEM_STATUS_TABLE + 1] = nextPID;
+
+if ([PROCESS_TABLE + nextPID * 16 + 4] == CREATED) then 
+    SP = [PROCESS_TABLE + nextPID * 16 + 13];
+    [PROCESS_TABLE + nextPID * 16 + 4] = RUNNING;
+    [PROCESS_TABLE + nextPID * 16 + 9] = 0;
+    ireturn;
+endif;
+
+[PROCESS_TABLE + nextPID * 16 + 4] = RUNNING;
+multipop(BP);
+
+return;

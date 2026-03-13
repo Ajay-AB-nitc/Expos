@@ -1,0 +1,23 @@
+type
+node {
+int x;
+}
+endtype
+
+int main(){
+    decl 
+        int a;
+        int temp;
+        node ptr;
+    enddecl
+    begin 
+        a = 1;
+        //temp = initialize();
+        while (a > 0) do
+            //ptr = alloc();
+            write(a);
+            a = a + 1;
+        endwhile;
+        return 0;
+    end
+}

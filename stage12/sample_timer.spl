@@ -1,0 +1,61 @@
+//saving user SP in process table
+breakpoint;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+//setting sp to KPTR
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+//backup registers
+backup;
+
+///////////////acutual code
+
+//getting pid from system status table
+alias currentPID R0;
+currentPID = [SYSTEM_STATUS_TABLE + 1];
+
+//setting the process table
+alias process_table_entry R1;
+process_table_entry = PROCESS_TABLE + currentPID * 16;
+[process_table_entry + 12] = SP % 512;
+[process_table_entry + 14] = PTBR;
+[process_table_entry + 15] = PTLR;
+[process_table_entry + 4] = READY;
+
+//sheducling 
+alias newPID R2;
+if (currentPID == 0) then
+	newPID = 1;
+else
+	newPID = 0;
+endif;
+
+//set the regiseters from the process table of new process
+alias new_process_table R3;
+new_process_table = PROCESS_TABLE + newPID * 16;
+SP = [new_process_table + 11] * 512 + [new_process_table + 12];
+PTBR = [new_process_table + 14];
+PTLR = [new_process_table + 15];
+
+//set the newpid in system status table
+[SYSTEM_STATUS_TABLE + 1] = newPID;
+
+//check if the process was just created then don't do restore as there wan't anything backedup for that this is the first time this is going to be executed so we will be restoring from empty stack
+if ([new_process_table + 4] == CREATED) then
+	[new_process_table + 4] = RUNNING;
+	SP = [new_process_table + 13];
+	ireturn;
+	// ireturn skips the restore that comes ahead
+endif;
+	
+[new_process_table + 4] = RUNNING;
+
+
+///////////////end acutual code
+
+restore;
+
+//reset sp back
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+breakpoint;
+ireturn;

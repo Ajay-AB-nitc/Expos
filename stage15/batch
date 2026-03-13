@@ -1,0 +1,14 @@
+load --os $HOME/myexpostest/stage15/mos_startup.xsm
+load --init $HOME/myexpostest/stage15/odd.xsm
+load --library $HOME/myexpostest/stage11/mlibrary.lib
+load --int=10 $HOME/myexpostest/stage15/sample_int10.xsm
+load --exhandler $HOME/myexpostest/haltprog.xsm
+load --int=7 $HOME/myexpostest/stage15/sample_int7.xsm
+load --int=timer $HOME/myexpostest/stage15/sample_timer.xsm
+load --idle $HOME/myexpostest/stage15/idle.xsm
+load --module 7 $HOME/myexpostest/stage15/boot_module.xsm
+load --module 5 $HOME/myexpostest/stage15/scheduler.xsm
+load --module 0 $HOME/myexpostest/stage15/resource_manager.xsm
+load --module 4 $HOME/myexpostest/stage15/device_manager.xsm
+load --exec $HOME/myexpostest/stage15/even.xsm
+load --exec $HOME/myexpostest/stage15/prime.xsm

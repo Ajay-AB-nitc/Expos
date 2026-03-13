@@ -1,0 +1,28 @@
+load --os $HOME/myexpostest/stage21/mos_startup.xsm
+load --library $HOME/myexpostest/library.lib
+load --exhandler $HOME/myexpostest/stage21/exhandler.xsm
+load --int=disk $HOME/myexpostest/stage21/disk_interrupt.xsm
+load --int=console $HOME/myexpostest/stage21/console_interrupt.xsm
+load --int=timer $HOME/myexpostest/stage21/sample_timer.xsm
+load --int=6 $HOME/myexpostest/stage21/sample_int6.xsm
+load --int=7 $HOME/myexpostest/stage21/sample_int7.xsm
+load --int=8 $HOME/myexpostest/stage21/sample_int8.xsm
+load --int=9 $HOME/myexpostest/stage21/sample_int9.xsm
+load --int=10 $HOME/myexpostest/stage21/sample_int10.xsm
+load --int=11 $HOME/myexpostest/stage21/sample_int11.xsm
+load --int=15 $HOME/myexpostest/stage21/sampe_int15.xsm
+load --module 0 $HOME/myexpostest/stage21/resource_manager.xsm
+load --module 1 $HOME/myexpostest/stage21/process_manager.xsm
+load --module 2 $HOME/myexpostest/stage21/memory_manager.xsm
+load --module 4 $HOME/myexpostest/stage21/device_manager.xsm
+load --module 5 $HOME/myexpostest/stage21/scheduler.xsm
+load --module 7 $HOME/myexpostest/stage21/boot_module.xsm
+load --idle $HOME/myexpostest/stage21/idle.xsm
+load --init $HOME/myexpostest/stage21/shell2.xsm
+load --exec $HOME/myexpostest/stage21/odd.xsm
+load --exec $HOME/myexpostest/stage21/even.xsm
+load --exec $HOME/myexpostest/stage21/euclid.xsm
+load --exec $HOME/myexpostest/stage21/bubble.xsm
+load --exec $HOME/myexpostest/stage21/oddeven.xsm
+load --exec $HOME/myexpostest/stage21/pid.xsm
+load --exec $HOME/myexpostest/stage21/fork3.xsm

@@ -1,0 +1,48 @@
+
+//saving user SP in process table
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+//setting sp to KPTR
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+//backup registers
+backup;
+
+//set state of current process to ready
+alias currentPID R0;
+currentPID = [SYSTEM_STATUS_TABLE + 1];
+
+
+//setting the state to ready for current process
+alias process_table_entry R1;
+process_table_entry = PROCESS_TABLE + currentPID * 16;
+[process_table_entry + 4] = READY;
+
+
+//invoke context switch module
+call MOD_5;
+
+
+restore;
+
+// restore sp
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+// update kptr in process table
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 12] = 0;
+// set mod flag to 0
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+
+
+
+ireturn;
+
+
+
+
+// here the restore is done on a different process from the one which was scheduled
+// the process stops executing termorarily when the mod5 is called and when it is 
+// scheduled again it will return to this timer from the scheduler and execute the restore
+
+
+
+

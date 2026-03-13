@@ -1,0 +1,77 @@
+type
+    Node
+    {
+        int x;
+        Node next;
+    }
+endtype
+
+decl
+    /* int p(Node h); */
+    int add(int a, int b);
+enddecl
+
+/*int p(Node h){*/
+/*    decl*/
+/*        int temp;*/
+/*    enddecl*/
+/*    begin*/
+/*        temp = 0;*/
+/*        if (h != null) then*/
+/*            write(h.x);*/
+/*            temp = p(h.next);*/
+/*        endif;*/
+/*        return temp;*/
+/*    end*/
+/*}*/
+int add(int a, int b){
+    begin
+        return a + b;
+    end
+}
+
+int main(){
+    decl
+        Node head;
+        Node niter;
+        Node uselsess;
+        int count;
+        int iter;
+        int curr;
+        int hold;
+    enddecl
+
+    begin
+        hold = initialize();
+        head = null;
+        read(count);
+        iter = 0;
+        while (iter < count) do
+            read(curr);
+            uselsess = alloc();
+            uselsess.x = curr;
+            uselsess.next = null;
+
+            if (head == null)then
+                head = uselsess;
+                niter = head;
+            else
+                niter.next = uselsess;
+                niter = niter.next;
+            endif;
+
+            iter = iter + 1;
+        endwhile;
+
+        iter = 0;
+        niter = head;
+        while (iter < count) do
+            write(niter.x);
+            niter = niter.next;
+            iter = iter + 1;
+        endwhile;
+        hold = add(a, b)
+/*        hold = p(head); */
+        return 1;
+    end
+}

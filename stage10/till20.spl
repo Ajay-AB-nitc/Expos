@@ -1,0 +1,5 @@
+alias val R0;
+while (val <= 20) do
+	print val;
+	val = val + 1;
+endwhile;

@@ -1,0 +1,75 @@
+alias functionNum R1;
+alias arg1 R2;
+alias arg2 R3;
+alias arg3 R4;
+
+
+// 1 => disk_load(pid, pagene, blockno) 
+if (functionNum == DISK_LOAD)then 
+    multipush(R1, R2, R3, R4);
+    functionNum = ACQUIRE_DISK;
+    // arg1 = arg1;
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3, R4);
+
+    [DISK_STATUS_TABLE + 1] = 0; //load / store = load
+    [DISK_STATUS_TABLE + 2] = arg2; // pageno
+    [DISK_STATUS_TABLE + 3] = arg3; // blockno
+
+    load(arg2, arg3);
+
+    [PROCESS_TABLE + arg1 * 16 + 4] = WAIT_DISK;
+
+    
+    multipush(R1, R2, R3, R4);
+    call SCHEDULER;
+    multipop(R1, R2, R3, R4);
+endif;
+
+
+
+
+// TERMINAL_WRITE => 3
+if (functionNum == TERMINAL_WRITE) then
+    //calling acquire terminal
+    multipush(R1, R2, R3);
+    functionNum = ACQUIRE_TERMINAL;
+    //R2 already stores pid 
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3);
+
+    //printing
+    print arg2;
+
+    //calling release terminal
+    multipush(R1, R2, R3);
+    functionNum = 9;
+    //R2 already stores pid 
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3);    
+
+endif;
+
+
+// TERMINAL_READ => 4
+if (functionNum == TERMINAL_READ) then
+    multipush(R1, R2, R3);
+    functionNum = ACQUIRE_TERMINAL;
+    //currnt pid already in r2 
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3);
+    read;
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_TERMINAL;
+
+    multipush(R1, R2, R3);
+    call SCHEDULER;
+    multipop(R1, R2, R3);
+
+    // value at word is the logical addr where the output should be stored
+    // we are takeing that value from the buffer feild of process tabe at putting it there
+    [[PTBR + 2 * (arg2 / 512)] * 512 + arg2 % 512] = [PROCESS_TABLE + 16 * arg1 + 8];
+endif;
+
+
+
+return;

@@ -1,0 +1,48 @@
+alias functionNum R1;
+alias currentPID R2;
+alias word R3;
+
+// TERMINAL_WRITE => 3
+if (functionNum == TERMINAL_WRITE) then
+    //calling acquire terminal
+    multipush(R1, R2, R3);
+    functionNum = ACQUIRE_TERMINAL;
+    //R2 already stores pid 
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3);
+
+    //printing
+    print word;
+
+    //calling release terminal
+    multipush(R1, R2, R3);
+    functionNum = 9;
+    //R2 already stores pid 
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3);    
+
+endif;
+
+
+// TERMINAL_READ => 4
+if (functionNum == TERMINAL_READ) then
+    multipush(R1, R2, R3);
+    functionNum = ACQUIRE_TERMINAL;
+    //currnt pid already in r2 
+    call RESOURCE_MANAGER;
+    multipop(R1, R2, R3);
+    read;
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_TERMINAL;
+
+    multipush(R1, R2, R3);
+    call SCHEDULER;
+    multipop(R1, R2, R3);
+
+    // value at word is the logical addr where the output should be stored
+    // we are takeing that value from the buffer feild of process tabe at putting it there
+    [[PTBR + 2 * (word / 512)] * 512 + word % 512] = [PROCESS_TABLE + 16 * currentPID + 8];
+endif;
+
+
+
+return;

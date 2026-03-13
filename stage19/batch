@@ -1,0 +1,19 @@
+load --os $HOME/myexpostest/stage19/mos_startup.xsm
+load --init $HOME/myexpostest/stage19/shell.xsm
+load --library $HOME/myexpostest/library.lib
+load --int=10 $HOME/myexpostest/stage19/sample_int10.xsm
+load --exhandler $HOME/myexpostest/stage19/exhandler.xsm
+load --int=7 $HOME/myexpostest/stage19/sample_int7.xsm
+load --int=timer $HOME/myexpostest/stage19/sample_timer.xsm
+load --idle $HOME/myexpostest/stage19/idle.xsm
+load --module 7 $HOME/myexpostest/stage19/boot_module.xsm
+load --module 5 $HOME/myexpostest/stage19/scheduler.xsm
+load --module 0 $HOME/myexpostest/stage19/resource_manager.xsm
+load --module 4 $HOME/myexpostest/stage19/device_manager.xsm
+load --int=console $HOME/myexpostest/stage19/console_interrupt.xsm
+load --int=6 $HOME/myexpostest/stage19/sample_int6.xsm
+load --int=9 $HOME/myexpostest/stage19/sample_int9.xsm
+load --module 1 $HOME/myexpostest/stage19/process_manager.xsm
+load --module 2 $HOME/myexpostest/stage19/memory_manager.xsm
+load --exec $HOME/myexpostest/stage19/ll.xsm
+load --int=disk $HOME/myexpostest/stage19/disk_interrupt.xsm

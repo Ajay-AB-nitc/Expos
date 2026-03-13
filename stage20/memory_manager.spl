@@ -1,0 +1,99 @@
+alias rval R0;
+alias fno R1;
+alias arg1 R2;
+
+
+if (fno == GET_FREE_PAGE)then
+    alias q R3;
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+
+    while ([SYSTEM_STATUS_TABLE + 2] == 0) do
+        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_MEM;
+        multipush(R0, R1, R2, R3);
+        call SCHEDULER;
+        multipop(R0, R1, R2, R3);
+    endwhile;
+
+    [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+
+
+    q = 0;
+
+    while (q < MAX_MEM_PAGE)do
+        if ([MEMORY_FREE_LIST + q ] == 0) then
+            [MEMORY_FREE_LIST + q ] = 1;
+            rval = q ;
+            break;
+        endif;
+        q = q + 1;
+    endwhile;
+
+    return;
+endif;
+
+
+if (fno == RELEASE_PAGE) then
+    alias q R3;
+    [MEMORY_FREE_LIST + arg1] = [MEMORY_FREE_LIST + arg1] - 1;
+
+    if ([MEMORY_FREE_LIST + arg1] == 0) then
+        [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+    endif;
+
+    q = 0;
+
+    while (q < 16) do
+        if ([PROCESS_TABLE + q * 16 + 4] == WAIT_MEM) then
+            [PROCESS_TABLE + q * 16 + 4] = READY;
+        endif;
+        q = q + 1;
+    endwhile;
+    return;
+endif;
+
+// get_code_page(block_no) => page_no allocated for that block after
+if (fno == GET_CODE_PAGE) then
+    alias q R3;
+    alias q2 R4;
+    q = 0;
+    q2 = 4;
+
+    //checks if the code block was already loaded by some other process then reuse that page
+    while (q < 16) do
+        while (q2 < 8) do
+            if ([DISK_MAP_TABLE + q * 10 + q2] == arg1) then
+                rval = [PAGE_TABLE_BASE + 20 * q + (q2) * 2];
+                if (rval != -1) then
+                    [MEMORY_FREE_LIST + rval] = [MEMORY_FREE_LIST + rval] + 1;
+                    return;
+                endif;
+            endif;
+            q2 = q2 + 1;
+        endwhile;
+        q2 = 4;
+        q = q + 1;        
+    endwhile;
+
+
+    multipush(R1, R2, R3, R4);
+    fno = GET_FREE_PAGE;
+    call MEMORY_MANAGER; 
+
+    multipop(R1, R2, R3, R4);
+    
+    multipush(R0, R1, R2, R3, R4);
+    fno = DISK_LOAD;
+    R4 = arg1;  //arg1 is r2 whicih is needded below so do it first
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = rval;
+    call DEVICE_MANAGER;
+    multipop(R0, R1, R2, R3, R4);
+    return;
+endif;
+
+
+if (fno == RELEASE_BLOCK) then
+    [DISK_FREE_LIST + arg1] = [DISK_FREE_LIST + arg1] - 1;
+    return;
+endif;

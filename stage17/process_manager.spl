@@ -1,0 +1,63 @@
+alias fno R1;
+alias currPID R2;
+// alias arg1 R2;
+
+if (fno == FREE_USER_AREA_PAGE)then
+    alias pagetofree R3;
+    pagetofree = [PROCESS_TABLE + currPID * 16 + 11];
+    multipush(R0, R1, R2, R3);
+    fno = RELEASE_PAGE;
+    R2 = pagetofree;
+    call MEMORY_MANAGER;
+    multipop(R0, R1, R2, R3);
+    return;
+endif;
+
+if (fno == EXIT_PROCESS) then
+    multipush(R1, R2);
+    fno = FREE_PAGE_TABLE;
+    // currPID = currPID
+    call PROCESS_MANAGER;
+    multipop(R1, R2);
+
+    multipush(R1, R2);
+    fno = FREE_USER_AREA_PAGE;
+    // currPID = currPID
+    call PROCESS_MANAGER;
+    multipop(R1, R2);
+
+    [PROCESS_TABLE + currPID * 16 + 4] = TERMINATED;
+    return;
+endif;
+
+if (fno == FREE_PAGE_TABLE) then
+    alias pageTableEntry R3;
+    pageTableEntry = [PROCESS_TABLE + currPID * 16 + 14];
+    
+    //invalidate library pages
+    [pageTableEntry + 0] = -1;
+    [pageTableEntry + 1] = "0000";
+    [pageTableEntry + 2] = -1;
+    [pageTableEntry + 3] = "0000";
+
+    alias iter R4;
+    iter = 2;
+
+    while (iter < 10) do
+        if ([pageTableEntry + iter * 2] != -1)then
+            alias pageno R5;
+           
+            pageno = [pageTableEntry + iter * 2];
+            multipush(R0, R1, R2, R3, R4, R5);
+                fno = RELEASE_PAGE;
+                R2 = pageno;
+                call MEMORY_MANAGER;
+            multipop(R0, R1, R2, R3, R4, R5);
+        endif;
+        [pageTableEntry + iter * 2] = -1;
+        [pageTableEntry + iter * 2 + 1] = "0000";
+        iter = iter + 1;
+
+    endwhile;
+    return; 
+endif;

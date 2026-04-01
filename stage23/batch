@@ -1,0 +1,29 @@
+load --os $HOME/myexpostest/stage23/mos_startup.xsm
+load --library $HOME/myexpostest/library.lib
+load --exhandler $HOME/myexpostest/stage23/exhandler.xsm
+load --int=disk $HOME/myexpostest/stage23/disk_interrupt.xsm
+load --int=console $HOME/myexpostest/stage23/console_interrupt.xsm
+load --int=timer $HOME/myexpostest/stage23/timer_interrupt.xsm
+load --int=4 $HOME/myexpostest/stage23/int4_fman.xsm
+load --int=6 $HOME/myexpostest/stage23/int6_read.xsm
+load --int=7 $HOME/myexpostest/stage23/int7_write.xsm
+load --int=8 $HOME/myexpostest/stage23/int8_fork.xsm
+load --int=9 $HOME/myexpostest/stage23/int9_exec.xsm
+load --int=10 $HOME/myexpostest/stage23/int10_exit.xsm
+load --int=11 $HOME/myexpostest/stage23/int11_sync.xsm
+load --int=13 $HOME/myexpostest/stage23/int13_sema.xsm
+load --int=14 $HOME/myexpostest/stage23/int14_lock.xsm
+load --int=15 $HOME/myexpostest/stage23/int15_shutdown.xsm
+load --module 0 $HOME/myexpostest/stage23/resource_manager.xsm
+load --module 1 $HOME/myexpostest/stage23/process_manager.xsm
+load --module 2 $HOME/myexpostest/stage23/memory_manager.xsm
+load --module 4 $HOME/myexpostest/stage23/device_manager.xsm
+load --module 5 $HOME/myexpostest/stage23/scheduler.xsm
+load --module 7 $HOME/myexpostest/stage23/boot_module.xsm
+load --idle $HOME/myexpostest/stage23/idle.xsm
+load --init $HOME/myexpostest/stage23/shell2.xsm
+load --exec $HOME/myexpostest/stage23/rw.xsm
+load --exec $HOME/myexpostest/stage23/seq_m.xsm
+load --exec $HOME/myexpostest/stage23/con_m.xsm
+load --exec $HOME/myexpostest/stage23/create.xsm
+load --exec $HOME/myexpostest/stage23/delete.xsm

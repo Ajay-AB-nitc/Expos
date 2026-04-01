@@ -1,0 +1,33 @@
+load --os $HOME/myexpostest/stage22/mos_startup.xsm
+load --library $HOME/myexpostest/library.lib
+load --exhandler $HOME/myexpostest/stage22/exhandler.xsm
+load --int=disk $HOME/myexpostest/stage22/disk_interrupt.xsm
+load --int=console $HOME/myexpostest/stage22/console_interrupt.xsm
+load --int=timer $HOME/myexpostest/stage22/timer_interrupt.xsm
+load --int=6 $HOME/myexpostest/stage22/int6_read.xsm
+load --int=7 $HOME/myexpostest/stage22/int7_write.xsm
+load --int=8 $HOME/myexpostest/stage22/int8_fork.xsm
+load --int=9 $HOME/myexpostest/stage22/int9_exec.xsm
+load --int=10 $HOME/myexpostest/stage22/int10_exit.xsm
+load --int=11 $HOME/myexpostest/stage22/int11_sync.xsm
+load --int=13 $HOME/myexpostest/stage22/int13_sema.xsm
+load --int=14 $HOME/myexpostest/stage22/int14_lock.xsm
+load --int=15 $HOME/myexpostest/stage22/int15_shutdown.xsm
+load --module 0 $HOME/myexpostest/stage22/resource_manager.xsm
+load --module 1 $HOME/myexpostest/stage22/process_manager.xsm
+load --module 2 $HOME/myexpostest/stage22/memory_manager.xsm
+load --module 4 $HOME/myexpostest/stage22/device_manager.xsm
+load --module 5 $HOME/myexpostest/stage22/scheduler.xsm
+load --module 7 $HOME/myexpostest/stage22/boot_module.xsm
+load --idle $HOME/myexpostest/stage22/idle.xsm
+load --init $HOME/myexpostest/stage22/shell2.xsm
+load --exec $HOME/myexpostest/stage22/odd.xsm
+load --exec $HOME/myexpostest/stage22/even.xsm
+load --exec $HOME/myexpostest/stage22/euclid.xsm
+load --exec $HOME/myexpostest/stage22/bubble.xsm
+load --exec $HOME/myexpostest/stage22/oddeven.xsm
+load --exec $HOME/myexpostest/stage22/pid.xsm
+load --exec $HOME/myexpostest/stage22/fork3.xsm
+load --exec $HOME/myexpostest/stage22/rw.xsm
+load --exec $HOME/myexpostest/stage22/parent.xsm
+load --exec $HOME/myexpostest/stage22/child.xsm

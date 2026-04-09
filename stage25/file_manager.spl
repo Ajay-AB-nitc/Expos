@@ -1,0 +1,149 @@
+define OPEN_MOD 5;
+alias rval R0;
+alias fno R1; 
+alias iter R5;
+
+
+if (fno == BUFFERED_WRITE) then
+    alias blockNum R2;
+    alias offset R3;
+    alias wordToWrite R4;
+    alias bufferno R6;
+
+    bufferno = blockNum % MAX_BUFFER;
+
+    multipush(R0, R1, R2, R3, R4, R5, R6);
+    fno = ACQUIRE_BUFFER;
+    R2 = bufferno;
+    R3 = [SYSTEM_STATUS_TABLE + 1];
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3, R4, R5, R6);
+
+    if ([BUFFER_TABLE + bufferno * 4 + 0] != blockNum) then
+        if ([BUFFER_TABLE + bufferno * 4 + 1] == 1) then
+            multipush(R0, R1, R2, R3, R4, R5, R6);
+            fno = DISK_STORE;
+            R2 = [SYSTEM_STATUS_TABLE + 1];
+            R3 = BUFFER_BASE + bufferno;
+            R4 = [BUFFER_TABLE + bufferno * 4 + 0];
+            call DEVICE_MANAGER;
+            multipop(R0, R1, R2, R3, R4, R5, R6);
+
+            [BUFFER_TABLE + bufferno * 4 + 1] = 0;
+        endif;
+        
+        multipush(R0, R1, R2, R3, R4, R5, R6);
+        fno = DISK_LOAD;
+        R4 = blockNum;
+        R2 = [SYSTEM_STATUS_TABLE + 1];
+        R3 = BUFFER_BASE + bufferno;
+        call DEVICE_MANAGER;
+        multipop(R0, R1, R2, R3, R4, R5, R6);
+
+        [BUFFER_TABLE + bufferno * 4 + 0] = blockNum;
+    endif;
+    
+    [(BUFFER_BASE + bufferno) * 512 + offset] = wordToWrite;
+    
+    [BUFFER_TABLE + bufferno * 4 + 1] = 1;
+
+    multipush(R0, R1, R2, R3, R4, R5, R6);
+    fno = RELEASE_BUFFER;
+    R2 = bufferno;
+    R3 = [SYSTEM_STATUS_TABLE + 1];
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3, R4, R5, R6);
+    
+    return;
+endif;
+
+if (fno == BUFFERED_READ) then
+    alias blockNum R2; 
+    alias offset R3; 
+    alias addr R4; 
+
+    alias bufferno R6;
+    bufferno = blockNum % MAX_BUFFER;
+
+    multipush(R0, R1, R2, R3, R4, R5, R6);
+    fno = ACQUIRE_BUFFER;
+    R2 = bufferno;
+    R3 = [SYSTEM_STATUS_TABLE + 1];
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3, R4, R5, R6);
+
+    if ([BUFFER_TABLE + bufferno * 4 + 0] != blockNum) then
+
+        // if dirty store it back
+        if ([BUFFER_TABLE + bufferno * 4 + 1] == 1) then
+            multipush(R0, R1, R2, R3, R4, R5, R6);
+            fno = DISK_STORE;
+            R2 = [SYSTEM_STATUS_TABLE + 1];
+            R3 = BUFFER_BASE + bufferno;
+            R4 = [BUFFER_TABLE + bufferno * 4 + 0];
+            call DEVICE_MANAGER;
+            multipop(R0, R1, R2, R3, R4, R5, R6);
+
+            [BUFFER_TABLE + bufferno * 4 + 1] = 0; // clean 
+        endif;
+
+        // replace the buffer with current block
+        multipush(R0, R1, R2, R3, R4, R5, R6);
+        fno = DISK_LOAD;    
+        R4 = blockNum;
+        R2 = [SYSTEM_STATUS_TABLE + 1];
+        R3 = BUFFER_BASE + bufferno;
+        call DEVICE_MANAGER;
+        multipop(R0, R1, R2, R3, R4, R5, R6);
+
+        [BUFFER_TABLE + bufferno * 4 + 0] = blockNum;
+    endif;
+
+    // put the word in the required memory addr
+    [addr] = [(BUFFER_BASE + bufferno) * 512 + offset];
+
+    multipush(R0, R1, R2, R3, R4, R5, R6);
+    fno = RELEASE_BUFFER;
+    R2 = bufferno;
+    R3 = [SYSTEM_STATUS_TABLE + 1];
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3, R4, R5, R6);
+
+    return;
+
+endif;
+
+
+if (fno == OPEN) then
+    fno = OPEN_MOD;
+    call DEVICE_MANAGER;
+    return;
+endif;
+
+
+if (fno == CLOSE) then 
+    alias oftEntry R2;
+    alias inodeIndex R3;
+
+    inodeIndex = [OPEN_FILE_TABLE + oftEntry * 4 + 0]; // saving from invalidation 
+    [OPEN_FILE_TABLE + oftEntry * 4 + 1] = [OPEN_FILE_TABLE + oftEntry * 4 + 1] - 1;
+
+    if ([OPEN_FILE_TABLE + oftEntry * 4 + 1] == 0) then
+        iter  = 0;
+        while (iter < 4) do // invalidating the oft
+            [OPEN_FILE_TABLE + oftEntry * 4 + iter] = -1;
+            iter = iter + 1;
+        endwhile;
+        if (inodeIndex != INODE_ROOT) then
+            [FILE_STATUS_TABLE + inodeIndex * 4 + 1] = [FILE_STATUS_TABLE + inodeIndex * 4 + 1] - 1;
+            if ([FILE_STATUS_TABLE + inodeIndex * 4 + 1] == 0) then
+                [FILE_STATUS_TABLE + inodeIndex * 4 + 1] = -1;
+            endif;
+        endif;
+    endif;
+
+    rval = 0;
+    return;
+endif;
+
+return;

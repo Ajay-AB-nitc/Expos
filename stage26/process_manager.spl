@@ -1,0 +1,180 @@
+alias fno R1;
+alias currPID R2;
+
+// get_pcb_entry() => pcb_entry
+if (fno == GET_PCB_ENTRY) then
+    alias iter R3;
+    iter = 1;
+    while (iter < 16) do
+        if ([PROCESS_TABLE + iter * 16 + 4] == TERMINATED) then
+            break;
+        endif;
+        iter = iter + 1;
+    endwhile;
+    if (iter == 16) then
+        R0 = -1;
+    else
+        [PROCESS_TABLE + iter * 16 + 4] = ALLOCATED;
+        [PROCESS_TABLE + iter * 16 + 1] = iter;
+        [PROCESS_TABLE + iter * 16 + 14] = PAGE_TABLE_BASE + (20 * iter);
+        [PROCESS_TABLE + iter * 16 + 15] = 10;
+        R0 = iter;
+    endif;
+    return;
+endif;
+
+if (fno == FREE_USER_AREA_PAGE) then
+    alias userAreaPageNumber R3;
+    userAreaPageNumber = [PROCESS_TABLE + 16 * currPID + 11];
+
+    alias iter R4;
+    iter = RESOURCE_TABLE_OFFSET;
+    while (iter < 512) do
+        alias type R5;
+        type = [[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512 + iter];
+        if (type == SEMAPHORE) then
+            multipush(R1, R2, R3, R4, R5);
+            R1 = RELEASE_SEMAPHORE;
+            R2 = [[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512 + iter + 1];
+            R3 = [SYSTEM_STATUS_TABLE + 1];
+            call RESOURCE_MANAGER;
+            multipop(R1, R2, R3, R4, R5);
+        else
+            if (type == FILE) then
+                multipush(R1, R2, R3, R4, R5);
+                R1 = CLOSE;
+                R2 = [[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11] * 512 + iter + 1];
+                call FILE_MANAGER;
+                multipop(R1, R2, R3, R4, R5);
+            endif;
+        endif;
+        iter = iter + 2;
+    endwhile;
+
+    multipush(R1, R2, R3, R4);
+    R1 = RELEASE_PAGE;
+    R2 = userAreaPageNumber;
+    call MEMORY_MANAGER;
+    multipop(R1, R2, R3, R4);
+
+    return;
+endif;
+
+if (fno == EXIT_PROCESS) then
+    multipush(R1, R2);
+    // free page table
+    R1 = FREE_PAGE_TABLE;
+    R2 = currPID;
+    call PROCESS_MANAGER;
+
+    // free user area page
+    R1 = FREE_USER_AREA_PAGE;
+    R2 = currPID;
+    call PROCESS_MANAGER;
+    multipop(R1, R2);
+
+    if ([PROCESS_TABLE + currPID * 16 + 9] != 9) then 
+        alias iter R3;
+        iter = 0;
+        while (iter < 16) do
+            if ([PROCESS_TABLE + iter * 16 + 4] == WAIT_PROCESS && [PROCESS_TABLE + iter * 16 + 5] == currPID) then
+                [PROCESS_TABLE + iter * 16 + 4] = READY;
+            endif;
+            if ([PROCESS_TABLE + iter * 16 + 2] == currPID) then
+                [PROCESS_TABLE + iter * 16 + 2] = -1;
+            endif;
+            iter = iter + 1;
+        endwhile;
+    endif;
+
+    [PROCESS_TABLE + 16 * currPID + 4] = TERMINATED;
+    return;
+endif;
+
+if (fno == FREE_PAGE_TABLE) then
+    alias ptbr R3;
+    ptbr = [PROCESS_TABLE + currPID * 16 + 14];
+
+    [ptbr + 0] = -1;
+    [ptbr + 1] = "0000";
+    [ptbr + 2] = -1;
+    [ptbr + 3] = "0000";
+
+    alias iter R5;
+    alias pageNumber R4;
+
+    iter = 1;
+    while (iter < 10) do 
+        pageNumber = [ptbr + 2 + 2 * iter];
+        if (pageNumber != -1) then
+            multipush(R1, R2, R3, R4, R5);
+            R1 = RELEASE_PAGE;
+            R2 = pageNumber;
+            call MEMORY_MANAGER;
+            multipop(R1, R2, R3, R4, R5);
+
+            [ptbr + 2 + 2 * iter] = -1;
+            [ptbr + 3 + 2 * iter] = "0000";
+        endif;
+        iter = iter + 1;
+    endwhile;
+
+    iter = 2;
+    while (iter < 10) do
+        if ([DISK_MAP_TABLE + currPID * 10 + iter] != -1) then
+            if (iter < 4 || iter > 7) then
+                multipush(R1, R2, R3, R4, R5);
+                R1 = RELEASE_BLOCK;
+                R3 = currPID;
+                R2 = [DISK_MAP_TABLE + currPID * 10 + iter];
+                call MEMORY_MANAGER;
+                multipop(R1, R2, R3, R4, R5);
+            endif;
+            [DISK_MAP_TABLE + currPID * 10 + iter] = -1;
+        endif;
+        iter = iter + 1;
+    endwhile;
+    return;
+endif;
+
+if (fno == KILL_ALL) then
+    alias iter R5;
+    iter = 0;
+    while (iter < MAX_FILE_NUM) do
+        if ([INODE_TABLE + 16 * iter + 1] != -1) then
+            multipush(R1, R2, R5);
+            R1 = ACQUIRE_INODE;
+            R3 = currPID;
+            R2 = iter;
+            call RESOURCE_MANAGER;
+            multipop(R1, R2, R5);
+        endif;
+        iter = iter + 1;
+    endwhile;
+
+    iter = 2;
+    while (iter < MAX_PROC_NUM - 1) do
+        if ([PROCESS_TABLE + 16 * iter + 1] != currPID && [PROCESS_TABLE + 16 * iter + 4] != TERMINATED) then
+            multipush(R1, R2, R5);
+            R1 = EXIT_PROCESS;
+            R2 = iter;
+            call PROCESS_MANAGER;
+            multipop(R1, R2, R5);
+        endif;
+        iter = iter + 1;
+    endwhile;
+
+    iter = 0;
+    while (iter < MAX_FILE_NUM) do
+        if ([INODE_TABLE + 16 * iter + 1] != -1) then
+            multipush(R1, R2, R5);
+            R1 = RELEASE_INODE;
+            R3 = currPID;
+            R2 = iter;
+            call RESOURCE_MANAGER;
+            multipop(R1, R2, R5);
+        endif;
+        iter = iter + 1;
+    endwhile;
+    return;
+endif;

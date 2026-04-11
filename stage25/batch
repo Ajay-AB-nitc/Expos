@@ -29,4 +29,11 @@ load --exec $HOME/myexpostest/stage25/seq_m.xsm
 load --exec $HOME/myexpostest/stage25/con_m.xsm
 load --exec $HOME/myexpostest/stage25/create.xsm
 load --exec $HOME/myexpostest/stage25/delete.xsm
-load --exec $HOME/myexpostest/stage25/assg1/assgn1.xsm
+load --exec $HOME/myexpostest/stage25/assg/reverse.xsm
+load --exec $HOME/myexpostest/stage25/assg/append.xsm
+load --exec $HOME/myexpostest/stage25/assg/cr_sh_wr.xsm
+load --exec $HOME/myexpostest/stage25/assg/merge.xsm
+load --exec $HOME/myexpostest/stage25/commands/cp.xsm
+load --exec $HOME/myexpostest/stage25/commands/ls.xsm
+load --exec $HOME/myexpostest/stage25/commands/rm.xsm
+load --exec $HOME/myexpostest/stage25/commands/cat.xsm

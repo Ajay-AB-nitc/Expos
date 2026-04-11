@@ -1,8 +1,0 @@
-load --os $HOME/myexpostest/stage12/mos_startup.xsm
-load --init $HOME/myexpostest/stage12/numbers.xsm
-load --library $HOME/myexpostest/library.lib
-load --int=10 $HOME/myexpostest/stage10/haltprog.xsm
-load --exhandler $HOME/myexpostest/stage10/haltprog.xsm
-load --int=7 $HOME/myexpostest/stage10/sample_int7.xsm
-load --int=timer $HOME/myexpostest/stage12/sample_timer.xsm
-load --idle $HOME/myexpostest/stage12/idle.xsm

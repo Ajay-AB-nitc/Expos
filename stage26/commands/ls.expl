@@ -1,0 +1,41 @@
+// int main() {
+//     decl
+//         int temp, fd;
+//         str fileName;
+//     enddecl
+//     begin
+//         fd = exposcall("Open", "root");
+//         while (3 == 3) do
+//             temp = exposcall("Read", fd, fileName);
+//             if (temp == -2) then
+//                 break;
+//             endif;
+//             temp = exposcall("Seek", fd, 7);
+//             if (fileName == "-1") then
+//                 continue;
+//             endif;
+//             temp = exposcall("Write", -2, fileName);
+//         endwhile;
+//         return 0;
+//     end
+// }
+int main() {
+    decl 
+        int temp, counter, stopRead, fileDesc;
+        str fileName;
+    enddecl
+
+    begin
+        fileDesc = exposcall("Open", "root");
+        stopRead = exposcall("Seek", fileDesc, 8);
+        while (stopRead != -2) do 
+            stopRead = exposcall("Read", fileDesc, fileName);
+            if (fileName != "-1") then
+                temp = exposcall("Write", -2, fileName);
+            endif;
+            temp = exposcall("Seek", fileDesc, 7);
+        endwhile;
+        temp = exposcall("Close", fileDesc);
+        return 0;
+    end
+}

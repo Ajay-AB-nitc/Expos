@@ -1,0 +1,37 @@
+load --os $HOME/myexpostest/stage26/mos_startup.xsm
+load --library $HOME/myexpostest/library.lib
+load --exhandler $HOME/myexpostest/stage26/exhandler.xsm
+load --int=disk $HOME/myexpostest/stage26/disk_interrupt.xsm
+load --int=console $HOME/myexpostest/stage26/console_interrupt.xsm
+load --int=timer $HOME/myexpostest/stage26/timer_interrupt.xsm
+load --int=4 $HOME/myexpostest/stage26/int4_fman.xsm
+load --int=5 $HOME/myexpostest/stage26/int5_fedit.xsm
+load --int=6 $HOME/myexpostest/stage26/int6_read.xsm
+load --int=7 $HOME/myexpostest/stage26/int7_write.xsm
+load --int=8 $HOME/myexpostest/stage26/int8_fork.xsm
+load --int=9 $HOME/myexpostest/stage26/int9_exec.xsm
+load --int=10 $HOME/myexpostest/stage26/int10_exit.xsm
+load --int=11 $HOME/myexpostest/stage26/int11_sync.xsm
+load --int=12 $HOME/myexpostest/stage26/int12_logout.xsm
+load --int=13 $HOME/myexpostest/stage26/int13_sema.xsm
+load --int=14 $HOME/myexpostest/stage26/int14_lock.xsm
+load --int=15 $HOME/myexpostest/stage26/int15_shutdown.xsm
+load --int=16 $HOME/myexpostest/stage26/int16_user.xsm
+load --int=17 $HOME/myexpostest/stage26/int17_login.xsm
+load --module 0 $HOME/myexpostest/stage26/resource_manager.xsm
+load --module 1 $HOME/myexpostest/stage26/process_manager.xsm
+load --module 2 $HOME/myexpostest/stage26/memory_manager.xsm
+load --module 3 $HOME/myexpostest/stage26/file_manager.xsm
+load --module 4 $HOME/myexpostest/stage26/device_manager.xsm
+load --module 5 $HOME/myexpostest/stage26/scheduler.xsm
+load --module 7 $HOME/myexpostest/stage26/boot_module.xsm
+load --idle $HOME/myexpostest/stage26/progs/idle.xsm
+load --init $HOME/myexpostest/stage26/commands/login.xsm
+load --shell $HOME/myexpostest/stage26/commands/shell.xsm
+load --exec $HOME/myexpostest/stage26/assg/reverse.xsm
+load --exec $HOME/myexpostest/stage26/assg/append.xsm
+load --exec $HOME/myexpostest/stage26/assg/cr_sh_wr.xsm
+load --exec $HOME/myexpostest/stage26/commands/cp.xsm
+load --exec $HOME/myexpostest/stage26/commands/ls.xsm
+load --exec $HOME/myexpostest/stage26/commands/rm.xsm
+load --exec $HOME/myexpostest/stage26/commands/cat.xsm

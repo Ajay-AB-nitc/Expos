@@ -1,0 +1,183 @@
+// c is the process table entry
+alias c R0;
+alias userSP R1;
+alias retAddr R2;
+alias syscallnum R3; 
+alias iter R4;
+alias end R15;
+
+userSP = SP;
+c = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16;
+retAddr = [PTBR + (userSP - 1) / 512 * 2] * 512  + (userSP - 1) % 512;
+syscallnum = [[PTBR + (userSP - 5) / 512 * 2] * 512  + (userSP - 5) % 512];
+
+[c + 9] = syscallnum;
+[c + 13] = SP;
+SP = [c + 11] * 512 - 1;
+
+// newuser(username, passwd) => creates user
+if (syscallnum == INT_NEWUSR) then
+    alias userName R5;
+    alias passwd R6;
+    userName = [[PTBR + (userSP - 4) / 512 * 2] * 512  + (userSP - 4) % 512];
+    passwd = [[PTBR + (userSP - 3) / 512 * 2] * 512  + (userSP - 3) % 512];
+
+    // pass only if the process is shell running as root
+    if ([SYSTEM_STATUS_TABLE + 0] != ROOT || [SYSTEM_STATUS_TABLE + 1] != 2)then
+        [retAddr] = -2;
+        goto end;
+    endif;
+
+    alias userIndex R7;
+    userIndex = -1;
+    iter = 0;
+    while (iter < MAX_USER_NUM) do
+        if ([USER_TABLE + iter * 2] == userName)then
+            [retAddr] = -1;
+            goto end;
+        endif;
+        if ([USER_TABLE + iter * 2] == -1)then
+            userIndex = iter;
+            break;
+        endif;
+        iter = iter + 1;
+    endwhile;
+
+    // maximum users
+    if (userIndex == -1)then
+        [retAddr] = -3;
+        goto end;
+    endif;
+
+    [USER_TABLE + userIndex * 2 + 0] = userName;
+    encrypt passwd;
+    [USER_TABLE + userIndex * 2 + 1] = passwd;
+    [retAddr] = 0;
+
+endif;
+
+// remuser(username) => removes user
+if (syscallnum == INT_REMUSR)then
+    alias userName R5;
+    userName = [[PTBR + (userSP - 4) / 512 * 2] * 512  + (userSP - 4) % 512];
+
+    // pass only if the process is shell running as root and also sanitize username
+    if ([SYSTEM_STATUS_TABLE + 0] != ROOT || [SYSTEM_STATUS_TABLE + 1] != 2 || userName == "root" || userName == "kernel")then
+        [retAddr] = -2;
+        goto end;
+    endif;
+
+    alias userIndex R6;
+    userIndex = -1;
+    iter = 0;
+    
+    // find userid
+    while (iter < MAX_USER_NUM) do
+        if ([USER_TABLE + iter * 2] == userName)then
+            userIndex = iter;
+            break;
+        endif;
+        iter = iter + 1;
+    endwhile;
+
+    // user not found
+    if (userIndex == -1)then
+        [retAddr] = -1;
+        goto end;
+    endif;
+
+    iter = 0;
+    while (iter < MAX_FILE_NUM) do
+        // user has files, can't remove user
+        if ([ROOT_FILE + iter * 8 + 3] == userName)then
+            [retAddr] = -3;
+            goto end;
+        endif;
+        iter = iter + 1;
+    endwhile;
+
+    // invalidating usertable
+    [USER_TABLE + userIndex * 2 + 0] = -1;
+    [USER_TABLE + userIndex * 2 + 1] = -1;
+
+    [retAddr] = 0;
+endif;
+
+
+// setpwd(username, newpass) => changes the password 
+if (syscallnum == INT_SETPWD)then
+    alias userName R5;
+    alias passwd R6;
+    userName = [[PTBR + (userSP - 4) / 512 * 2] * 512  + (userSP - 4) % 512];
+    passwd = [[PTBR + (userSP - 3) / 512 * 2] * 512  + (userSP - 3) % 512];
+
+    // return if not shell
+    if ([SYSTEM_STATUS_TABLE + 1] != 2)then 
+        [retAddr] = -1;
+        goto end;
+    endif;
+
+    alias userIndex R7;
+    userIndex = -1;
+    iter = 0;
+    // finding user index
+    while (iter < MAX_USER_NUM) do
+        if ([USER_TABLE + iter * 2 + 0] == userName)then
+            userIndex = iter;
+        endif;
+        iter = iter + 1;
+    endwhile;
+
+    // user not found
+    if (userIndex == -1)then
+        [retAddr] = -2;
+        goto end;
+    endif;
+
+    // if not called by user, it must be by root otherwrise return
+    if ([SYSTEM_STATUS_TABLE + 0] != userIndex && [SYSTEM_STATUS_TABLE + 0] != ROOT) then
+        [retAddr] = -1;
+        goto end;
+    endif;
+
+    encrypt passwd;
+    [USER_TABLE + userIndex * 2 + 1] = passwd;
+    [retAddr] = 0;
+endif;
+
+// getuid(uname) => uid
+if (syscallnum == INT_GETUID)then
+    alias userName R5;
+    userName = [[PTBR + (userSP - 4) / 512 * 2] * 512  + (userSP - 4) % 512];
+
+    iter = 0;
+    // finding user index
+    while (iter < MAX_USER_NUM) do
+        if ([USER_TABLE + iter * 2 + 0] == userName)then
+            [retAddr] = iter;
+            goto end;
+        endif;
+        iter = iter + 1;
+    endwhile;
+
+    [retAddr] = -1;
+endif;
+
+// getunae(uid) => uname
+if (syscallnum == INT_GETUNAME)then
+    alias uid R5;
+    uid = [[PTBR + (userSP - 4) / 512 * 2] * 512  + (userSP - 4) % 512];
+
+    if (uid < 0 || uid > 15)then
+        [retAddr] = -1;
+        goto end;
+    endif;
+
+    [retAddr] = [USER_TABLE + uid * 2 + 0]; // handles undefined as well
+endif;
+
+
+end:
+[c + 9] = 0;
+SP = [c + 13];
+ireturn;

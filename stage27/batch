@@ -1,0 +1,40 @@
+fdisk
+load --os $HOME/myexpostest/stage27/mos_startup.xsm
+load --library $HOME/myexpostest/library.lib
+load --exhandler $HOME/myexpostest/stage27/exhandler.xsm
+load --int=disk $HOME/myexpostest/stage27/disk_interrupt.xsm
+load --int=console $HOME/myexpostest/stage27/console_interrupt.xsm
+load --int=timer $HOME/myexpostest/stage27/timer_interrupt.xsm
+load --int=4 $HOME/myexpostest/stage27/int4_fman.xsm
+load --int=5 $HOME/myexpostest/stage27/int5_fedit.xsm
+load --int=6 $HOME/myexpostest/stage27/int6_read.xsm
+load --int=7 $HOME/myexpostest/stage27/int7_write.xsm
+load --int=8 $HOME/myexpostest/stage27/int8_fork.xsm
+load --int=9 $HOME/myexpostest/stage27/int9_exec.xsm
+load --int=10 $HOME/myexpostest/stage27/int10_exit.xsm
+load --int=11 $HOME/myexpostest/stage27/int11_sync.xsm
+load --int=12 $HOME/myexpostest/stage27/int12_logout.xsm
+load --int=13 $HOME/myexpostest/stage27/int13_sema.xsm
+load --int=14 $HOME/myexpostest/stage27/int14_lock.xsm
+load --int=15 $HOME/myexpostest/stage27/int15_shutdown.xsm
+load --int=16 $HOME/myexpostest/stage27/int16_user.xsm
+load --int=17 $HOME/myexpostest/stage27/int17_login.xsm
+load --module 0 $HOME/myexpostest/stage27/resource_manager.xsm
+load --module 1 $HOME/myexpostest/stage27/process_manager.xsm
+load --module 2 $HOME/myexpostest/stage27/memory_manager.xsm
+load --module 3 $HOME/myexpostest/stage27/file_manager.xsm
+load --module 4 $HOME/myexpostest/stage27/device_manager.xsm
+load --module 5 $HOME/myexpostest/stage27/scheduler.xsm
+load --module 6 $HOME/myexpostest/stage27/pager_module.xsm
+load --module 7 $HOME/myexpostest/stage27/boot_module.xsm
+load --idle $HOME/myexpostest/stage27/progs/idle.xsm
+load --init $HOME/myexpostest/stage27/commands/login.xsm
+load --shell $HOME/myexpostest/stage27/commands/shell.xsm
+load --exec $HOME/myexpostest/stage27/commands/cp.xsm
+load --exec $HOME/myexpostest/stage27/commands/ls.xsm
+load --exec $HOME/myexpostest/stage27/commands/rm.xsm
+load --exec $HOME/myexpostest/stage27/commands/lu.xsm
+load --exec $HOME/myexpostest/stage27/commands/ru.xsm
+load --exec $HOME/myexpostest/stage27/commands/cat.xsm
+load --exec $HOME/myexpostest/stage27/progs/fork3.xsm
+load --exec $HOME/myexpostest/stage27/progs/pid.xsm

@@ -1,0 +1,230 @@
+alias rval R0;
+alias fno R1;
+alias pid R2; // the only arguemnt
+alias iter R3;
+
+
+
+if (fno == SWAP_OUT)then
+    alias waitSemPid R4;
+    alias maxTickPid R5;
+    alias swapPid R6;
+    alias maxTick R7;
+
+    iter = 3;
+    waitSemPid = -1;
+    maxTickPid = -1;
+    swapPid = -1;
+    maxTick = -1;
+
+
+    while (iter < MAX_PROC_NUM - 1) do
+        alias c R9;
+        alias cstate R10;
+        c = PROCESS_TABLE + iter * 16;
+        cstate = [c + 4];
+
+        // if the process is not yet swapped
+        if ([c + 6] == 0)then
+
+            // if we get a wait process instantly set it as the swapping proceess
+            // since its the highest priority
+            if (cstate == WAIT_PROCESS)then
+                swapPid = iter;
+                break;
+            endif;
+
+            // find the waiter semaphore ones (priority 2)
+            if (cstate == WAIT_SEMAPHORE)then
+                waitSemPid = iter;
+            endif;
+
+            // highest tick (priority 3)
+            if (cstate != TERMINATED && cstate != RUNNING && cstate != ALLOCATED)then
+                if ([c + 0] > maxTick) then
+                    maxTick = [c + 0];
+                    maxTickPid = iter;
+                endif;
+            endif;
+        endif; 
+
+        iter = iter + 1;
+    endwhile;
+
+    // no wait process 
+    if (swapPid == -1)then
+        swapPid = waitSemPid;
+    endif;
+
+    // no wait process and semaphore
+    if (swapPid == -1)then
+        swapPid = maxTickPid;
+    endif;
+
+    // and no maxtick 
+    if (swapPid == -1)then
+        [SYSTEM_STATUS_TABLE + 5] = 0;
+        rval = -1;
+        return;
+    endif;
+
+    // reusing old registers
+    alias selectedPID R4;
+    selectedPID = swapPid;
+
+    [PROCESS_TABLE + selectedPID * 16 + 0] = 0; // reset tick
+    
+    alias swapPTBR R5;
+    swapPTBR = [PROCESS_TABLE + selectedPID * 16 + 14];
+
+    // deallocating pages
+    iter = 4; 
+    while (iter < 20) do
+        alias pageno R6;
+        pageno = [swapPTBR + iter];
+
+        // if heap or stack store back to disk and update disk map table
+        if (iter <= 6 || iter >= 16)then
+            // checik if page is valid and if its heap ensure its not shared
+            if (pageno != -1 && [MEMORY_FREE_LIST + pageno] == 1)then
+                // get swap block
+                multipush(R1, R2, R3, R4, R5, R6);
+                fno = GET_SWAP_BLOCK;
+                call MEMORY_MANAGER;
+                multipop(R1, R2, R3, R4, R5, R6);
+
+                // store the block in disk map table
+                [DISK_MAP_TABLE + 10 * selectedPID + (iter / 2)] = rval;
+
+                // store the block  
+                multipush(R1, R2, R3, R4, R5, R6);
+                fno = DISK_STORE;
+                R2 = SWAPPER_DAEMON;
+                R3 = pageno;
+                R4 = rval;
+                call DEVICE_MANAGER;
+                multipop(R1, R2, R3, R4, R5, R6);
+            endif;
+        endif;
+
+        // deallocating the page
+        if (pageno != -1)then
+            multipush(R1, R2, R3, R4, R5, R6);
+            fno = RELEASE_PAGE;
+            R2 = pageno;
+            call MEMORY_MANAGER;
+            multipop(R1, R2, R3, R4, R5, R6);
+        endif; 
+
+        // invalidate the page table
+        [swapPTBR + iter] = -1;
+        [swapPTBR + iter + 1] = "0000";
+
+        iter = iter + 2;
+    endwhile;
+
+    // set swap flag for process
+    [PROCESS_TABLE + selectedPID * 16 + 6] = 1;
+
+    // increment swap count
+    [SYSTEM_STATUS_TABLE + 4] = [SYSTEM_STATUS_TABLE + 4] + 1;
+
+    // reset paging status
+    [SYSTEM_STATUS_TABLE + 5] = 0;
+endif;
+
+
+if (fno == SWAP_IN)then
+    alias swapPid R4;
+    alias maxTick R5;
+    alias swapPTBR R6;
+
+    swapPid = -1;
+    maxTick = 0;
+    iter = 3;
+
+    while (iter < MAX_PROC_NUM - 1) do
+        // looking for processes that can be ready when brought to memory  
+        if ([PROCESS_TABLE + iter * 16 + 4] == READY && [PROCESS_TABLE + iter * 16 + 6] == 1) then
+            if ([PROCESS_TABLE + iter * 16 + 0] > maxTick)then
+                swapPid = iter;
+                maxTick = [PROCESS_TABLE + iter * 16 + 0];
+            endif;
+        endif;
+        iter = iter + 1;
+    endwhile;
+
+    // no such process reset paging status and return
+    if (swapPid == -1)then
+        [SYSTEM_STATUS_TABLE + 5] = 0;
+        rval = -1;
+        return;
+    endif;
+
+    alias swapC R7;
+    swapC = PROCESS_TABLE + swapPid * 16;
+
+    // reset tick of selected process
+    [swapC + 0] = 0;
+
+    swapPTBR = [swapC + 14];
+
+    iter = 4;
+    while (iter < 20) do
+        if (iter == 8)then
+            iter = 16;
+            continue;
+        endif;
+
+        alias blockno R8;
+        blockno = [DISK_MAP_TABLE + swapPid * 10 +  (iter / 2)];
+
+        if (blockno != -1)then
+            // get page
+            multipush(R1, R2, R3, R4, R5, R6, R7);
+            fno = GET_FREE_PAGE;
+            call MEMORY_MANAGER;
+            multipop(R1, R2, R3, R4, R5, R6, R7);
+
+            // set page table
+            [swapPTBR + iter] = rval;
+            [swapPTBR + iter + 1] = "0110";
+
+
+
+            R14 = blockno; // saved for douhble call
+
+            multipush(R1, R2, R3, R4, R5, R6, R7);
+            
+            // load block
+            fno = DISK_LOAD;
+            R2 = SWAPPER_DAEMON;
+            R3 = rval;
+            R4 = blockno;
+            call DEVICE_MANAGER;
+
+            // free swap block
+            fno = RELEASE_BLOCK;
+            R2 = R14;
+            R3 = SWAPPER_DAEMON;
+            call MEMORY_MANAGER;
+            multipop(R1, R2, R3, R4, R5, R6, R7);
+
+            // invalidate disk free list enry
+
+            [DISK_MAP_TABLE + swapPid * 10 +  (iter / 2)] = -1;
+        endif;
+       iter = iter + 2; 
+    endwhile;
+
+    // setting swap flag to 0
+    [swapC + 6] = 0;
+
+    // decremet swap_count and rest paging_status
+    [SYSTEM_STATUS_TABLE + 4] = [SYSTEM_STATUS_TABLE + 4] - 1;
+    [SYSTEM_STATUS_TABLE + 5] = 0;
+
+endif;
+
+
+return;

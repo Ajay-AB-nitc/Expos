@@ -1,0 +1,87 @@
+//saving user SP in process table
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+
+//setting sp to KPTR
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+//backup registers
+backup;
+
+
+// paging
+
+alias iter R0;
+
+// check if swapping is initiated
+if ([SYSTEM_STATUS_TABLE + 5] != 0) then
+    // check if it is actually happening 
+    // if swapper daemon is called but the disk is blocked, idle will be scheduled
+    if ([SYSTEM_STATUS_TABLE + 1] == SWAPPER_DAEMON)then
+        R1 = [SYSTEM_STATUS_TABLE + 5]; // SWAP_IN / SWAP_OUT
+        R2 = [SYSTEM_STATUS_TABLE + 1];
+        call PAGER_MODULE;
+    endif;
+    // else (idle case) go to normal scheduling 
+    // which will again come here until disk is freed up
+
+
+else
+    // swapping is not on case
+    // check if it should be on
+
+    if ([SYSTEM_STATUS_TABLE + 2] < MEM_LOW) then
+        [SYSTEM_STATUS_TABLE + 5] = SWAP_OUT;
+    else
+        // if there are swapped processes
+        if ([SYSTEM_STATUS_TABLE + 4] > 0) then
+            
+            // if swap_in is possible
+            if ([SYSTEM_STATUS_TABLE + 2] > MEM_HIGH) then
+                [SYSTEM_STATUS_TABLE + 5] = SWAP_IN;
+
+            // force swap_in if any process is over max tick
+            else    
+                iter = 0;
+                while (iter < MAX_PROC_NUM) do
+                    // if is swapped and ticks exceed max tick
+                    if ([PROCESS_TABLE + iter * 16 + 6] == 1 && [PROCESS_TABLE + iter * 16 + 0] > MAX_TICK) then
+                        [SYSTEM_STATUS_TABLE + 5] = SWAP_IN;
+                        break;
+                    endif;
+                    iter = iter + 1;
+                endwhile;
+
+            endif;
+
+        endif;
+    endif;
+
+endif;
+
+// increment tick
+iter = 0;
+while (iter < MAX_PROC_NUM) do
+    [PROCESS_TABLE + iter * 16 + 0] = [PROCESS_TABLE + iter * 16 + 0] + 1; 
+    iter = iter + 1;
+endwhile;
+// paging over
+
+
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = READY;
+
+//invoke context switch module
+call SCHEDULER;
+
+restore;
+
+// restore sp
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+// update kptr in process table
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 12] = 0;
+// set mod flag to 0
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+
+
+
+ireturn;

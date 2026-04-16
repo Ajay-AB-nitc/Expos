@@ -1,0 +1,91 @@
+// c is the process table entry
+alias c R0;
+alias userSP R1;
+alias retAddr R2;
+alias syscallnum R3; 
+alias iter R4;
+
+userSP = SP;
+c = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16;
+retAddr = [PTBR + (userSP - 1) / 512 * 2] * 512  + (userSP - 1) % 512;
+syscallnum = [[PTBR + (userSP - 5) / 512 * 2] * 512  + (userSP - 5) % 512];
+
+[c + 9] = syscallnum;
+[c + 13] = SP;
+SP = [c + 11] * 512 - 1;
+
+
+if (syscallnum == INT_SEMGET)then
+    iter = 0;
+    // check the 8 entries of the resource table of that process to find free ones
+    alias resourceEntry R5;
+    resourceEntry = -1;
+    while (iter < 8)do
+        if ([[c + 11] * 512 + RESOURCE_TABLE_OFFSET + iter * 2] == -1)then
+            resourceEntry = iter;
+            break;
+        endif;
+        iter = iter + 1;
+    endwhile;
+    // exiting in no free resource table entry case
+    if (resourceEntry == -1) then
+        [retAddr] = -1;
+        [c+9] = 0;
+        SP = [c + 13];
+        ireturn;
+    endif; 
+
+    alias semid R6;
+    multipush(R0, R1, R2, R3, R4, R5);
+    R1 = ACQUIRE_SEMAPHORE;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    call RESOURCE_MANAGER;
+    semid = R0;
+    multipop(R0, R1, R2, R3, R4, R5);
+
+    // exiting in no free semaphore table entry case
+    if (semid == -1)then
+        [retAddr] = -2;
+        [c+9] = 0;
+        SP = [c + 13];
+        ireturn;
+    endif;
+
+    [[c + 11] * 512 + RESOURCE_TABLE_OFFSET + resourceEntry * 2] = SEMAPHORE;
+    [[c + 11] * 512 + RESOURCE_TABLE_OFFSET + resourceEntry * 2 + 1] = semid;
+
+    [retAddr] = resourceEntry;
+    [c+9] = 0;
+    SP = [c + 13];
+    ireturn;
+
+endif;
+
+// semrelease(sem_descriptor) => 0
+// sem_descriptor is the index in the resource table of the process where the semid is stored
+if (syscallnum == INT_SEMRELEASE) then
+    alias arg1 R5;
+    arg1 = [[PTBR + (userSP - 4) / 512 * 2] * 512  + (userSP - 4) % 512];
+
+    if (arg1 < 0 || arg1 > 7 || [[c + 11] * 512 + RESOURCE_TABLE_OFFSET + arg1 * 2] != SEMAPHORE) then
+        [retAddr] = -1;
+        [c+9] = 0;
+        SP = [c + 13];
+        ireturn;
+    endif;
+
+    multipush(R0, R1, R2, R3, R4, R5);
+    R1 = RELEASE_SEMAPHORE;
+    R2 = [[c + 11] * 512 + RESOURCE_TABLE_OFFSET + arg1 * 2 + 1];
+    R3 = [SYSTEM_STATUS_TABLE + 1];
+    call RESOURCE_MANAGER;
+    multipop(R0, R1, R2, R3, R4, R5);
+
+    [[c + 11] * 512 + RESOURCE_TABLE_OFFSET + arg1 * 2] = -1;
+    [retAddr] = 0;
+endif;
+
+
+[c+9] = 0;
+SP = [c + 13];
+ireturn;

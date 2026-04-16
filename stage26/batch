@@ -1,3 +1,4 @@
+fdisk
 load --os $HOME/myexpostest/stage26/mos_startup.xsm
 load --library $HOME/myexpostest/library.lib
 load --exhandler $HOME/myexpostest/stage26/exhandler.xsm
@@ -34,4 +35,6 @@ load --exec $HOME/myexpostest/stage26/assg/cr_sh_wr.xsm
 load --exec $HOME/myexpostest/stage26/commands/cp.xsm
 load --exec $HOME/myexpostest/stage26/commands/ls.xsm
 load --exec $HOME/myexpostest/stage26/commands/rm.xsm
+load --exec $HOME/myexpostest/stage26/commands/lu.xsm
+load --exec $HOME/myexpostest/stage26/commands/ru.xsm
 load --exec $HOME/myexpostest/stage26/commands/cat.xsm

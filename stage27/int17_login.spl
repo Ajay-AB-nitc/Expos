@@ -1,0 +1,74 @@
+// c is the process table entry
+alias c R0;
+alias userSP R1;
+alias retAddr R2;
+alias syscallnum R3; 
+alias iter R4;
+alias end R15;
+
+userSP = SP;
+c = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16;
+retAddr = [PTBR + (userSP - 1) / 512 * 2] * 512  + (userSP - 1) % 512;
+syscallnum = [[PTBR + (userSP - 5) / 512 * 2] * 512  + (userSP - 5) % 512];
+
+[c + 9] = syscallnum;
+[c + 13] = SP;
+SP = [c + 11] * 512 - 1;
+
+// login(username, unenc_passwed) => login
+alias uname R5;
+alias passwd R6;
+uname =  [[PTBR + (userSP - 4) / 512 * 2] * 512  + (userSP - 4) % 512];
+passwd =  [[PTBR + (userSP - 3) / 512 * 2] * 512  + (userSP - 3) % 512];
+
+
+// exit if not run by init
+if ([SYSTEM_STATUS_TABLE + 1] != 1)then
+    [retAddr] = -2;
+    goto end;
+endif;
+
+iter = 0;
+alias userIndex R7;
+userIndex = -1;
+while (iter < MAX_USER_NUM) do
+    if ([USER_TABLE + iter * 2 + 0] == uname)then
+        userIndex = iter;
+        break;
+    endif;
+    iter = iter + 1;
+endwhile;
+
+// if username doesn't exist return
+if (userIndex == -1)then
+    [retAddr] = -1;
+    goto end;
+endif;
+
+
+encrypt passwd;
+// if wrong password exit
+if (passwd != [USER_TABLE + userIndex * 2 + 1])then
+    [retAddr] = -1;
+    goto end;
+endif;
+
+// prepare shell
+[PROCESS_TABLE + 2 * 16 + 4] = CREATED;
+[PROCESS_TABLE + 2 * 16 + 3] = userIndex;
+
+// sleep login
+[c + 4] = WAIT_PROCESS;
+[c + 5] = 2;
+
+[SYSTEM_STATUS_TABLE + 0] = userIndex;
+
+multipush(R0, R1, R2, R3, R4, R5, R6, R7);
+call SCHEDULER;
+multipop(R0, R1, R2, R3, R4, R5, R6, R7);
+[retAddr] = 0;
+
+end:
+[c + 9] = 0;
+SP = [c + 13];
+ireturn;
